@@ -18,8 +18,19 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://gallery-management-frontend.onrender.com'
+];
+
+if (process.env.NODE_ENV === 'production') {
+  // Add your production frontend URL here
+  allowedOrigins.push('https://gallery-management-frontend.onrender.com');
+}
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());

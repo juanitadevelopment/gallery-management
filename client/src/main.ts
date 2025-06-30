@@ -7,6 +7,11 @@ import App from './App.vue'
 axios.defaults.timeout = 10000; // 10 seconds timeout
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 
+// Set base URL for production
+if (import.meta.env.PROD) {
+  axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'https://gallery-management-api.onrender.com';
+}
+
 // Add request interceptor for debugging
 axios.interceptors.request.use(
   (config) => {
