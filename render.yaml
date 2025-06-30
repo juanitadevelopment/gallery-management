@@ -15,10 +15,8 @@ services:
     autoDeploy: true
 
   # Frontend Static Site
-  - type: web
+  - type: static
     name: gallery-management-frontend
-    env: static
-    plan: free
     buildCommand: cd client && npm install && npm run build
     staticPublishPath: client/dist
     routes:
