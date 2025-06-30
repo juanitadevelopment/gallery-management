@@ -1,0 +1,298 @@
+# ギャラリー管理アプリ完全版開発プロンプト
+
+小さなギャラリーのスペース管理システムを Vue.js + TypeScript + Node.js で一から作成してください。
+
+## 技術スタック
+- **Frontend**: Vue.js 3 + TypeScript + Vite
+- **Backend**: Node.js + Express + TypeScript
+- **Database**: SQLite
+- **API**: REST API
+
+## アプリ概要
+10箇所の掲載場所を持つギャラリーで、絵画の管理と展示スケジュールを管理するシステム。
+
+## 全機能要件
+
+### 1. 絵画マスター管理
+- 絵画の新規登録（ID自動生成、タイトル、作者名、詳細URL）
+- 登録済み絵画の一覧表示（テーブルソート機能付き）
+- 絵画情報の編集・削除
+- 各カラムでのソート機能（昇順・降順切り替え）
+
+### 2. 掲載場所管理
+- 10箇所の掲載場所管理（場所ID: 1-10）
+- 各場所の設置可能サイズ設定（幅、高さ）
+- 場所一覧表示（テーブルソート機能付き）
+- 場所情報の編集
+
+### 3. 展示管理機能
+- 絵画を特定の場所に特定期間展示する管理
+- 展示登録（絵画選択、場所選択、開始日、終了日）
+- 展示一覧表示（ソート機能付き）
+- 現在展示中の作品一覧
+- 展示期間の重複チェック
+- 展示ステータス管理（予定・展示中・完了）
+
+### 4. データベース閲覧機能
+- SQLiteの生データを確認できる画面
+- 全テーブル（artworks, locations, exhibitions）のデータ表示
+- 開発・デバッグ用途
+
+### 5. テーブルソート機能
+- 全ての一覧画面でカラムヘッダークリックによるソート
+- 昇順・降順の切り替え
+- ソート状態のアイコン表示（▲▼）
+
+## データベース設計
+
+### artworks テーブル
+```sql
+CREATE TABLE artworks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    artist TEXT NOT NULL,
+    detail_url TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### locations テーブル
+```sql
+CREATE TABLE locations (
+    id INTEGER PRIMARY KEY,
+    width INTEGER NOT NULL,
+    height INTEGER NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### exhibitions テーブル
+```sql
+CREATE TABLE exhibitions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artwork_id INTEGER NOT NULL,
+    location_id INTEGER NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    status TEXT DEFAULT 'scheduled',
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (artwork_id) REFERENCES artworks(id),
+    FOREIGN KEY (location_id) REFERENCES locations(id),
+    -- 同一場所・期間の重複防止のための複合インデックス
+    UNIQUE(location_id, start_date, end_date)
+);
+
+-- 競合制御とパフォーマンス向上のためのインデックス
+CREATE INDEX idx_exhibitions_location_dates ON exhibitions(location_id, start_date, end_date);
+CREATE INDEX idx_exhibitions_artwork ON exhibitions(artwork_id);
+CREATE INDEX idx_exhibitions_status ON exhibitions(status);
+```
+
+## TypeScript型定義
+
+### Frontend型定義
+```typescript
+interface Artwork {
+  id: number;
+  title: string;
+  artist: string;
+  detail_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Location {
+  id: number;
+  width: number;
+  height: number;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Exhibition {
+  id: number;
+  artwork_id: number;
+  location_id: number;
+  start_date: string;
+  end_date: string;
+  status: 'scheduled' | 'active' | 'completed';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  artwork?: Artwork;
+  location?: Location;
+}
+```
+
+## API設計
+
+### 絵画API
+- `GET /api/artworks` - 絵画一覧取得
+- `POST /api/artworks` - 新規絵画登録
+- `PUT /api/artworks/:id` - 絵画情報更新
+- `DELETE /api/artworks/:id` - 絵画削除
+
+### 場所API
+- `GET /api/locations` - 場所一覧取得
+- `PUT /api/locations/:id` - 場所情報更新
+
+### 展示API
+- `GET /api/exhibitions` - 展示一覧取得
+- `POST /api/exhibitions` - 新規展示登録
+- `PUT /api/exhibitions/:id` - 展示情報更新
+- `DELETE /api/exhibitions/:id` - 展示削除
+- `GET /api/exhibitions/current` - 現在展示中の作品
+
+### データベースAPI
+- `GET /api/database/tables` - テーブル一覧取得
+- `GET /api/database/:table` - 指定テーブルの全データ取得
+
+## ディレクトリ構造
+```
+gallery-app/
+├── package.json
+├── server/
+│   ├── package.json
+│   ├── src/
+│   │   ├── app.ts
+│   │   ├── database.ts
+│   │   └── routes/
+│   │       ├── artworks.ts
+│   │       ├── locations.ts
+│   │       ├── exhibitions.ts
+│   │       └── database.ts
+│   └── database.db
+└── client/
+    ├── package.json
+    ├── vite.config.ts
+    ├── tsconfig.json
+    ├── index.html
+    └── src/
+        ├── main.ts
+        ├── App.vue
+        ├── types/
+        │   └── index.ts
+        ├── components/
+        │   ├── Navigation.vue
+        │   ├── ArtworkList.vue
+        │   ├── LocationList.vue
+        │   ├── ExhibitionList.vue
+        │   ├── DatabaseViewer.vue
+        │   └── SortableTable.vue
+        └── views/
+            ├── Home.vue
+            ├── Artworks.vue
+            ├── Locations.vue
+            ├── Exhibitions.vue
+            └── Database.vue
+```
+
+## Vue.js画面構成
+
+### ナビゲーション
+- トップページ
+- 絵画管理
+- 場所管理  
+- 展示管理
+- データベース閲覧
+
+### 各画面の機能
+- **絵画管理**: 一覧表示、新規登録フォーム、編集・削除
+- **場所管理**: 一覧表示、サイズ設定フォーム
+- **展示管理**: 一覧表示、新規展示登録フォーム、現在の展示状況
+- **データベース閲覧**: 全テーブルのraw data表示
+
+## 実装要件
+
+### バックエンド要件
+- Express + TypeScript
+- SQLite初期化（サンプルデータ投入）
+- CORS設定
+- エラーハンドリング
+- バリデーション
+- **マルチユーザー対応のトランザクション管理**
+
+### 同時アクセス・競合制御要件
+**想定**: 5名程度のユーザーが同時にアプリを使用
+
+#### トランザクション管理
+- SQLiteのWALモード（Write-Ahead Logging）を有効化
+- 読み取り専用操作は非ブロッキング
+- 書き込み操作は適切なトランザクション制御
+- デッドロック回避のためのタイムアウト設定
+
+#### 具体的な競合制御
+```typescript
+// 展示期間重複チェック時のトランザクション例
+BEGIN TRANSACTION;
+  -- 同一場所・期間の展示チェック
+  SELECT COUNT(*) FROM exhibitions 
+  WHERE location_id = ? AND 
+        ((start_date <= ? AND end_date >= ?) OR 
+         (start_date <= ? AND end_date >= ?));
+  -- 重複がなければ新規登録
+  INSERT INTO exhibitions (...) VALUES (...);
+COMMIT;
+```
+
+#### 楽観的ロック制御
+- updated_at フィールドを使用したバージョン管理
+- 更新時に元のupdated_atと比較してチェック
+- 競合検出時はフロントエンドにエラー返却
+
+#### 実装すべき競合制御パターン
+1. **展示登録時の重複防止**: 同一場所・期間の展示登録競合
+2. **絵画・場所編集時の競合**: 同じレコードの同時編集防止
+3. **展示削除時の整合性**: 展示中の絵画削除防止
+4. **データベース接続プール**: 同時接続数の制御
+
+#### エラーハンドリング
+- 競合エラー時の分かりやすいメッセージ
+- リトライ可能なエラーの識別
+- フロントエンドでの競合エラー表示
+
+#### SQLite設定
+```sql
+-- WALモード有効化
+PRAGMA journal_mode = WAL;
+-- 外部キー制約有効化
+PRAGMA foreign_keys = ON;
+-- ビジー待機時間設定
+PRAGMA busy_timeout = 3000;
+```
+
+### フロントエンド要件
+- Vue 3 Composition API + TypeScript
+- Vue Router（SPA）
+- レスポンシブデザイン
+- テーブルソート機能
+- フォームバリデーション
+- エラー表示
+- **競合エラー時のユーザーフレンドリーな表示**
+- **データ更新後の自動リフレッシュ機能**
+
+### 開発環境
+- `npm run dev` で開発サーバー起動
+- バックエンド: http://localhost:3000
+- フロントエンド: http://localhost:5173
+- ホットリロード対応
+
+## サンプルデータ
+- 絵画: 5件程度のサンプルデータ
+- 場所: 1-10番の場所（各種サイズ）
+- 展示: 数件のサンプル展示データ
+
+## その他の要求
+- 基本的なCSS styling（見やすいデザイン）
+- README.md の作成（起動方法、API仕様）
+- package.json scripts設定
+- TypeScript strict mode
+- ESLint + Prettier設定
+
+完成したら、クライアントとサーバーそれぞれで`npm run dev`を実行してアプリを起動できるようにしてください。
