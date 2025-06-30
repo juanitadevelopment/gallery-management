@@ -3,7 +3,7 @@ services:
   - type: web
     name: gallery-management-api
     env: node
-    plan: free
+    plan: starter
     buildCommand: cd server && npm install && npm run build
     startCommand: cd server && npm start
     healthCheckPath: /api/health
@@ -18,7 +18,7 @@ services:
   - type: web
     name: gallery-management-frontend
     env: static
-    plan: free
+    plan: starter
     buildCommand: cd client && npm install && npm run build
     staticPublishPath: client/dist
     routes:
